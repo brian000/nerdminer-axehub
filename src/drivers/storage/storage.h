@@ -60,8 +60,7 @@
 // URL gets btcWallet appended ("<url>" + btcWallet).
 #define JSON_SPIFFS_KEY_POOL_STATS_URL	"axhPoolStatsUrl"
 
-// Coin selector for network-data display (block height, difficulty, price).
-// Values: "BC2" (default), "BTC", "custom" — SHA-256 chains only.
+// Coin selector for network-data display. BTC is the only supported chain.
 #define JSON_SPIFFS_KEY_COIN_TICKER	"axhCoinTicker"
 
 // Optional per-coin URL overrides (only used when ticker == "custom").
@@ -99,11 +98,8 @@ struct TSettings
 	// always hit this URL (wallet appended).
 	String PoolStatsApiUrl{ "" };
 
-	// Coin selector for block-chain display data. "BC2" (default — uses
-	// bc2mempool.com), "BTC" (mempool.space + coingecko), "custom" (uses
-	// the URLs below). SHA-256 chains only — scrypt coins like LTC/DOGE
-	// are not implemented.
-	String CoinTicker{ "BC2" };
+	// BTC block-chain display data uses mempool.space and CoinGecko.
+	String CoinTicker{ "BTC" };
 	String CoinHeightApiUrl{ "" };
 	String CoinDifficultyApiUrl{ "" };
 	String CoinPriceApiUrl{ "" };

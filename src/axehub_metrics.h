@@ -66,6 +66,19 @@ inline void axehub_metrics_set_network_difficulty(double) {}
 inline void axehub_metrics_set_pool_connected(bool) {}
 inline void axehub_metrics_pool_send_marker() {}
 inline void axehub_metrics_pool_recv_marker() {}
+inline int      axehub_metrics_get_rssi() { return 0; }
+inline float    axehub_metrics_get_ema_1m_khs() { return 0; }
+inline float    axehub_metrics_get_ema_5m_khs() { return 0; }
+inline uint32_t axehub_metrics_get_hw_khs() { return 0; }
+inline uint32_t axehub_metrics_get_sw_khs() { return 0; }
+inline double   axehub_metrics_get_session_best_diff() { return 0; }
+inline double   axehub_metrics_get_pool_diff() { return 0; }
+inline double   axehub_metrics_get_network_difficulty() { return 0; }
+inline uint32_t axehub_metrics_get_pool_recv_age_ms() { return 0; }
+inline uint32_t axehub_metrics_get_pool_last_rtt_ms() { return 0; }
+inline uint32_t axehub_metrics_get_reject_total() { return 0; }
+inline uint32_t axehub_metrics_get_accept_total() { return 0; }
+inline bool     axehub_metrics_get_pool_connected() { return false; }
 inline uint32_t axehub_metrics_get_pool_effective_khs(uint32_t) { return 0; }
 inline bool     axehub_metrics_pool_effective_is_meaningful() { return false; }
 

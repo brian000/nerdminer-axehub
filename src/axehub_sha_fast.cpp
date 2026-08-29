@@ -404,6 +404,7 @@ static bool s_asm_selftest_passed = false;
 static uint8_t s_asm_selftest_got[32] = {0};
 bool axehub_sha_fast_get_asm_selftest_passed(void) { return s_asm_selftest_passed; }
 const uint8_t* axehub_sha_fast_get_asm_selftest_got(void) { return s_asm_selftest_got; }
+#endif
 
 #ifdef AXEHUB_HW_ASM_PURE
 static bool s_pure_selftest_passed = false;
@@ -412,6 +413,7 @@ bool axehub_sha_fast_get_pure_selftest_passed(void) { return s_pure_selftest_pas
 const uint8_t* axehub_sha_fast_get_pure_selftest_got(void) { return s_pure_selftest_got; }
 #endif
 
+#ifdef AXEHUB_HW_ASM
 static inline __attribute__((always_inline)) void compute_one_asm_inline(
     const uint32_t *midstate,
     const uint32_t *block2_words,

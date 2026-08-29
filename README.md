@@ -23,7 +23,7 @@ Endpoints include:
 - `/info` — full device snapshot (firmware / hashing / pool / hardware sections)
 - `/pool/set` + `/pool/set_fallback` — change primary / fallback pool over HTTP, persisted to NVS
 - `/pool/stats_api` — point the bottom-screen workers / diff / hashrate display at any custom stats URL (CKpool dashboards, public-pool, …)
-- `/coin` — switch chain (`BTC` / `BC2` (BitcoinII) pre-configured, plus `custom` with per-endpoint URL overrides for any SHA-256 fork)
+- `/coin` — use Bitcoin (`BTC`) network data
 - `/display/{mode,brightness,sleep_window}` — cycle screens, dim TFT, schedule nightly backlight off
 - `/buzzer/{test,tone}` — identify a board in a rack, custom alerts
 - `/system/restart` + `/system/reset_stats` + `/wifi/reset` — soft reboot, NVS stats wipe, reprovisioning escape hatch
@@ -41,7 +41,7 @@ Two driver variants share the same screens and data plumbing:
 - **M5StickC Plus 2** (ST7789v2 240×135) — button-cyclable (BtnA), compact layout for the small screen (Network drops `Difficulty` for space, still available via API)
 
 Coin-aware: rendering and data sources follow the active `axhCoinTicker`
-(`BTC` / `BC2` / `custom`). Screen index can be cycled via touch / button or
+(`BTC`). Screen index can be cycled via touch / button or
 set explicitly through the API.
 
 **Pool fallback** — automatic failover when the primary pool stops
@@ -55,7 +55,7 @@ uses the Web Serial API, which Firefox / Safari do not implement.
 ## Measured hashrate
 
 Pool-effective hashrate (accepted shares × pool difficulty / time) on a private
-BC2 (BitcoinII) test pool, diff floor 0.001, 100% acceptance ratio. CPU @ 240
+Bitcoin pool, diff floor 0.001, 100% acceptance ratio. CPU @ 240
 MHz, no overclocking. The on-screen `current_khs` counter tracks SHA peripheral
 iteration speed and converges to the effective rate after a few minutes of
 warm-up.

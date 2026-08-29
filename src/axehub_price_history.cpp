@@ -19,18 +19,16 @@ static uint32_t    s_last_attempt = 0;
 static bool        s_first_done   = false;
 static uint16_t    s_version      = 0;
 static String      s_last_ticker  = "";
-static const char* s_label        = "BC2";
+static const char* s_label        = "BTC";
 
 static WiFiClientSecure s_secure;
 
 static const char* coingeckoIdForActiveCoin() {
-    if (Settings.CoinTicker == "BTC") return "bitcoin";
-    return "bitcoinii";
+    return "bitcoin";
 }
 
 static const char* labelForActiveCoin() {
-    if (Settings.CoinTicker == "BTC") return "BTC";
-    return "BC2";
+    return "BTC";
 }
 
 static uint16_t parsePricesArray(const String& payload, float* tmp, uint16_t tmpCap) {
@@ -88,6 +86,11 @@ void axehub_price_history_reset() {
 }
 
 void axehub_price_history_tick() {
+#if AXEHUB_DISABLE_EXTERNAL_NETWORK_CALLS
+    s_count = 0;
+    s_first_done = false;
+    return;
+#else
     if (Settings.CoinTicker != s_last_ticker) {
         s_last_ticker  = Settings.CoinTicker;
         axehub_price_history_reset();
@@ -153,6 +156,7 @@ void axehub_price_history_tick() {
         Serial.println("[PriceHist] HTTP error caught");
         http.end();
     }
+#endif
 }
 
 uint8_t axehub_price_history_get(float* out, uint8_t cap,

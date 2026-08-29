@@ -12,6 +12,13 @@
 //Time update period
 #define UPDATE_PERIOD_h   5
 
+// Set to 1 on RAM-constrained boards to skip the external market/height/global
+// network polls that are not required for mining itself and can trigger heap
+// pressure while the TFT redraw path is active.
+#ifndef AXEHUB_DISABLE_EXTERNAL_NETWORK_CALLS
+#define AXEHUB_DISABLE_EXTERNAL_NETWORK_CALLS 0
+#endif
+
 //API BTC price (Update to USDT cus it's more liquidity and flow price updade)   
 
 //#define getBTCAPI "https://api.coindesk.com/v1/bpi/currentprice.json" -- doesn't work anymore

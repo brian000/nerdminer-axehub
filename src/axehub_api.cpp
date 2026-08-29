@@ -138,7 +138,10 @@ static void handleInfo(AsyncWebServerRequest* request) {
         return;
     }
 
-    DynamicJsonDocument doc(3072);
+    // /info runs alongside the display task. Keep its JSON workspace out of
+    // the heap so OpenFontRender retains allocation headroom during redraws.
+    static StaticJsonDocument<3072> doc;
+    doc.clear();
 
     // ---- firmware ----
     JsonObject fw = doc.createNestedObject("firmware");
@@ -317,9 +320,9 @@ static void handleInfo(AsyncWebServerRequest* request) {
     lot["blocks_found"]              = valids;
     lot["closest_diff_this_session"] = axehub_metrics_get_session_best_diff();
 
-    String out;
-    serializeJson(doc, out);
-    request->send(200, "application/json", out);
+    AsyncResponseStream* response = request->beginResponseStream("application/json");
+    serializeJson(doc, *response);
+    request->send(response);
 }
 
 static bool readString(JsonObject& o, const char* key, String& dst) {
@@ -1181,28 +1184,15 @@ static void handleCoinSet(AsyncWebServerRequest* request, JsonVariant& json) {
     }
     String ticker = o["ticker"].as<String>();
     ticker.toUpperCase();
-    if (ticker != "BTC" && ticker != "BC2" && ticker != "CUSTOM") {
-        sendJsonStatus(request, 400, "error", "ticker must be BTC, BC2, or custom");
+    if (ticker != "BTC") {
+        sendJsonStatus(request, 400, "error", "BTC is the only supported ticker");
         return;
     }
-    Settings.CoinTicker = (ticker == "CUSTOM") ? String("custom") : ticker;
-
-    // Optional per-URL overrides (only meaningful when ticker="custom").
-    auto setIfPresent = [&](const char* key, String& dst) {
-        if (o.containsKey(key)) {
-            String v = o[key].as<String>();
-            if (v.length() > 0 && !(v.startsWith("http://") || v.startsWith("https://"))) return false;
-            dst = v;
-        }
-        return true;
-    };
-    if (!setIfPresent("height_url",     Settings.CoinHeightApiUrl) ||
-        !setIfPresent("difficulty_url", Settings.CoinDifficultyApiUrl) ||
-        !setIfPresent("price_url",      Settings.CoinPriceApiUrl) ||
-        !setIfPresent("global_hash_url",Settings.CoinGlobalHashApiUrl)) {
-        sendJsonStatus(request, 400, "error", "override URLs must start with http(s)://");
-        return;
-    }
+    Settings.CoinTicker = "BTC";
+    Settings.CoinHeightApiUrl = "";
+    Settings.CoinDifficultyApiUrl = "";
+    Settings.CoinPriceApiUrl = "";
+    Settings.CoinGlobalHashApiUrl = "";
     nvMemory nv; nv.saveConfig(&Settings);
 
     // Force fresh polls and clear stale values so display reflects the new
@@ -1363,14 +1353,6 @@ static void handleDisplayMode(AsyncWebServerRequest* request, JsonVariant& json)
 static void axehubServerTask(void*) {
     while (WiFi.status() != WL_CONNECTED) {
         vTaskDelay(500 / portTICK_PERIOD_MS);
-    }
-    // Give WiFiManager's captive portal a beat to release port 80.
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-    if (WiFi.getMode() == WIFI_AP || WiFi.getMode() == WIFI_AP_STA) {
-        WiFi.softAPdisconnect(true);
-        WiFi.mode(WIFI_STA);
-        vTaskDelay(200 / portTICK_PERIOD_MS);
     }
 
     s_server = new AsyncWebServer(AXEHUB_PORT);

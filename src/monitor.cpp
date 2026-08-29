@@ -74,46 +74,20 @@ global_data gData;
 pool_data pData;
 String poolAPIUrl;
 
-// Coin-data API router. Supported tickers: BTC, BC2, custom.
-// Empty URL from any helper = skip the HTTP call.
+// Bitcoin network-data API endpoints.
 static String coinHeightUrl() {
-    if (Settings.CoinTicker == "BC2") {
-        if (Settings.CoinHeightApiUrl.length() > 0) return Settings.CoinHeightApiUrl;
-        return "https://bc2mempool.com/api/blocks/tip/height";
-    }
-    if (Settings.CoinTicker == "custom" && Settings.CoinHeightApiUrl.length() > 0) return Settings.CoinHeightApiUrl;
-    if (Settings.CoinTicker == "custom") return "";
     return String(getHeightAPI);
 }
 static String coinDifficultyUrl() {
-    if (Settings.CoinTicker == "BC2") {
-        if (Settings.CoinDifficultyApiUrl.length() > 0) return Settings.CoinDifficultyApiUrl;
-        return "https://bc2mempool.com/api/v1/difficulty-adjustment";
-    }
-    if (Settings.CoinTicker == "custom" && Settings.CoinDifficultyApiUrl.length() > 0) return Settings.CoinDifficultyApiUrl;
-    if (Settings.CoinTicker == "custom") return "";
     return String(getDifficulty);
 }
 static String coinGlobalHashUrl() {
-    if (Settings.CoinTicker == "BC2") {
-        if (Settings.CoinGlobalHashApiUrl.length() > 0) return Settings.CoinGlobalHashApiUrl;
-        return "https://bc2mempool.com/api/v1/mining/hashrate/3d";
-    }
-    if (Settings.CoinTicker == "custom" && Settings.CoinGlobalHashApiUrl.length() > 0) return Settings.CoinGlobalHashApiUrl;
-    if (Settings.CoinTicker == "custom") return "";
     return String(getGlobalHash);
 }
 static String coinPriceUrl() {
-    if (Settings.CoinTicker == "BC2") {
-        if (Settings.CoinPriceApiUrl.length() > 0) return Settings.CoinPriceApiUrl;
-        return "https://api.coingecko.com/api/v3/simple/price?ids=bitcoinii&vs_currencies=usd";
-    }
-    if (Settings.CoinTicker == "custom" && Settings.CoinPriceApiUrl.length() > 0) return Settings.CoinPriceApiUrl;
-    if (Settings.CoinTicker == "custom") return "";
     return String(getBTCAPI);
 }
 static const char* coinPriceJsonKey() {
-    if (Settings.CoinTicker == "BC2") return "bitcoinii";
     return "bitcoin";
 }
 
@@ -138,6 +112,11 @@ void setup_monitor(void){
     Serial.println("poolAPIUrl: " + poolAPIUrl);
 #endif
 
+    if (AXEHUB_DISABLE_EXTERNAL_NETWORK_CALLS) {
+        Serial.println("[Monitor] External network fetches disabled for this board.");
+        return;
+    }
+
     xTaskCreatePinnedToCore(axehubNetworkFetchTask, "AxhFetch", 8192,
                             nullptr, 11, &s_axehubFetchTaskHandle, 0);
 }
@@ -149,6 +128,10 @@ static void axehubNetworkFetchTask(void*) {
     vTaskDelay(2000 / portTICK_PERIOD_MS);
 
     for (;;) {
+        if (AXEHUB_DISABLE_EXTERNAL_NETWORK_CALLS) {
+            vTaskDelay(5000 / portTICK_PERIOD_MS);
+            continue;
+        }
         getBlockHeight();
         vTaskDelay(500 / portTICK_PERIOD_MS);
         getBTCprice();
@@ -163,6 +146,13 @@ static void axehubNetworkFetchTask(void*) {
 unsigned long mGlobalUpdate =0;
 
 void updateGlobalData(void){
+    if (AXEHUB_DISABLE_EXTERNAL_NETWORK_CALLS) {
+        gData.globalHash = "-";
+        gData.difficulty = "-";
+        gData.halfHourFee = 0;
+        return;
+    }
+
    if (!axehub_in_fetch_task()) return;
 
     if((mGlobalUpdate == 0) || (millis() - mGlobalUpdate > UPDATE_Global_min * 60 * 1000)){
@@ -290,6 +280,13 @@ void updateGlobalData(void){
 unsigned long mHeightUpdate = 0;
 
 String getBlockHeight(void){
+    if (AXEHUB_DISABLE_EXTERNAL_NETWORK_CALLS) {
+        static char block_buffer[16];
+        snprintf(block_buffer, sizeof(block_buffer), "%lu", (unsigned long)0);
+        current_block = String(block_buffer);
+        return current_block;
+    }
+
     // Monitor / screen callers get the cached value only — actual TLS
     // fetch happens on the dedicated fetch task to keep the screen alive.
     if (!axehub_in_fetch_task()) return current_block;
@@ -335,6 +332,12 @@ String getBlockHeight(void){
 unsigned long mBTCUpdate = 0;
 
 String getBTCprice(void){
+    if (AXEHUB_DISABLE_EXTERNAL_NETWORK_CALLS) {
+        static char price_buffer[16];
+        snprintf(price_buffer, sizeof(price_buffer), "N/A");
+        return String(price_buffer);
+    }
+
     if (!axehub_in_fetch_task()) {
         static char price_buffer[16];
         if (bitcoin_price >= 1.0) snprintf(price_buffer, sizeof(price_buffer), "$%u", (unsigned int)bitcoin_price);

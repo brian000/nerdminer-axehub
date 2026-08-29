@@ -504,6 +504,12 @@ void init_WifiManager()
         if (Settings.Brightness != 250) ESP.restart();
         #endif
     }
+
+#ifdef AXEHUB_API_ENABLED
+    // WiFiManager owns port 80 while its portal is active. AxeHub is started
+    // after this function returns, so release the portal before it binds HTTP.
+    wm.stopConfigPortal();
+#endif
 }
 
 //----------------- MAIN PROCESS WIFI MANAGER --------------
