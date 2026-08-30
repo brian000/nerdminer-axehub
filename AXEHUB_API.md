@@ -38,6 +38,9 @@ Standard error response shape:
 {"status":"error","msg":"<reason>"}
 ```
 
+The `msg` field is the human-readable error message; it contains the reason for
+failure while `status` indicates whether the request succeeded or failed.
+
 HTTP codes used: `200` OK, `400` bad request, `404` missing/invalid header,
 `501` feature not supported, `503` feature unavailable.
 
