@@ -1,4 +1,5 @@
 #include "displayDriver.h"
+#include "../../drivers/storage/storage.h"
 
 #ifdef T_DISPLAY
 
@@ -14,6 +15,8 @@
 #define WIDTH 340
 #define HEIGHT 170
 
+extern TSettings Settings;
+
 OpenFontRender render;
 TFT_eSPI tft = TFT_eSPI();                  // Invoke library, pins defined in User_Setup.h
 TFT_eSprite background = TFT_eSprite(&tft); // Invoke library sprite
@@ -24,6 +27,17 @@ void tDisplay_Init(void)
 #ifdef PIN_ENABLE5V
     pinMode(PIN_ENABLE5V, OUTPUT);
     digitalWrite(PIN_ENABLE5V, HIGH);
+#endif
+
+#ifdef TFT_BL
+    pinMode(TFT_BL, OUTPUT);
+    if (Settings.Brightness == 0) {
+        digitalWrite(TFT_BL, LOW);
+    } else {
+        ledcSetup(0, 5000, 8);
+        ledcAttachPin(TFT_BL, 0);
+        ledcWrite(0, Settings.Brightness);
+    }
 #endif
   
   tft.init();

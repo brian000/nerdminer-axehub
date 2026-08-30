@@ -953,7 +953,16 @@ static void axehubApplyBacklightLevel(int level) {
     digitalWrite(TFT_BL, on ? HIGH : LOW);
 #endif
 #else
+#ifdef TFT_BL
+    pinMode(TFT_BL, OUTPUT);
+    if (level == 0) {
+        digitalWrite(TFT_BL, LOW);
+        return;
+    }
+    ledcSetup(0, 5000, 8);
+    ledcAttachPin(TFT_BL, 0);
     ledcWrite(0, constrain(level, 0, 255));
+#endif
 #endif
 }
 
@@ -1271,12 +1280,14 @@ static void handleDisplayBrightness(AsyncWebServerRequest* request, JsonVariant&
         return;
     }
 
-#ifdef V1_DISPLAY
-    // LilyGo T-Display V1 uses a GPIO backlight which toggles fully on/off rather
-    // than dimming by duty cycle. Any non-zero value is treated as ON.
-    axehubApplyBacklightLevel(v);
+#ifdef TFT_BL
+    Serial.printf("[AxeHub] brightness POST value=%d persist=%d pin=%d\n", v, o.containsKey("persist") ? o["persist"].as<bool>() : 0, digitalRead(TFT_BL));
 #else
-    ledcWrite(0, v);
+    Serial.printf("[AxeHub] brightness POST value=%d persist=%d (no TFT_BL defined)\n", v, o.containsKey("persist") ? o["persist"].as<bool>() : 0);
+#endif
+    axehubApplyBacklightLevel(v);
+#ifdef TFT_BL
+    Serial.printf("[AxeHub] brightness applied: raw=%d, pin=%d, ledc=%d\n", v, digitalRead(TFT_BL), ledcRead(0));
 #endif
 
     bool persist = false;
