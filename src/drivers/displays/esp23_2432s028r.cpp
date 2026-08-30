@@ -6,7 +6,6 @@
 #include <TFT_eTouch.h>
 #include "media/images_320_170.h"
 #include "media/images_bottom_320_70.h"
-#include "media/bc2_logo.h"
 #include "media/myFonts.h"
 #include "media/Free_Fonts.h"
 #include "version.h"
@@ -319,31 +318,12 @@ static const int kCoinIconX = 179;
 static const int kCoinIconY = 1;   // bitmap has +0.5 subpixel y-shift baked in
 static const int kSpriteTopY = 3;   // y where the second sprite starts
 
-// Render the coin-ticker logo (BC2) or procedural badge (other tickers)
-// directly onto the given background sprite, using sprite-relative coords.
-// `spriteOriginX/Y` is where the sprite is later pushSprite'd to.
+// Render the active coin badge for any non-BTC ticker, but normalize to BTC.
 static void drawCoinTickerOnSprite(int spriteOriginX, int spriteOriginY) {
   if (Settings.CoinTicker == "BTC") return;
   const int sx = kCoinIconX - spriteOriginX;
   const int sy = kCoinIconY - spriteOriginY;
 
-  if (Settings.CoinTicker == "BC2") {
-    // Per-pixel blit so 0x0001 sentinel pixels stay transparent.
-    for (int yy = 0; yy < BC2_LOGO_H; yy++) {
-      for (int xx = 0; xx < BC2_LOGO_W; xx++) {
-        uint16_t px = pgm_read_word(&bc2Logo40[yy * BC2_LOGO_W + xx]);
-        if (px == BC2_LOGO_TRANSPARENT) continue;
-        background.drawPixel(sx + xx, sy + yy, px);
-      }
-    }
-    return;
-  }
-
-  // Procedural badge fallback — only reachable when CoinTicker is set
-  // to something other than the known SHA-256 tickers we ship a logo
-  // bitmap for (currently BTC and BC2). Any other value (including
-  // anything written via the "custom" path) just shows an orange
-  // circle with the ticker letters drawn over it.
   const int cx = sx + 8;
   const int cy = sy + 8;
   const int radius = 8;
@@ -364,15 +344,6 @@ static void drawCoinTickerOverlay() {
   if (Settings.CoinTicker == "BTC") return;
   const int rowsAboveSprite = kSpriteTopY - kCoinIconY;  // e.g. 3-1 = 2
   if (rowsAboveSprite <= 0) return;
-  if (Settings.CoinTicker == "BC2") {
-    for (int yy = 0; yy < rowsAboveSprite && yy < BC2_LOGO_H; yy++) {
-      for (int xx = 0; xx < BC2_LOGO_W; xx++) {
-        uint16_t px = pgm_read_word(&bc2Logo40[yy * BC2_LOGO_W + xx]);
-        if (px == BC2_LOGO_TRANSPARENT) continue;
-        tft.drawPixel(kCoinIconX + xx, kCoinIconY + yy, px);
-      }
-    }
-  }
 }
 
 void esp32_2432S028R_ClockScreen(unsigned long mElapsed)

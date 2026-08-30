@@ -203,6 +203,7 @@ void setup()
   extern nvMemory nvMem;
   extern TSettings Settings;
   nvMem.loadConfig(&Settings);
+  Serial.printf("[BOOT] coin=%s\n", Settings.CoinTicker.c_str());
 
   /******** INIT DISPLAY ************/
   initDisplay();

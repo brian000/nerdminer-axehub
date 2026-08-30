@@ -135,9 +135,10 @@ bool nvMemory::loadConfig(TSettings* Settings)
                         Settings->WebhookShareAboveDiffThreshold = json[JSON_SPIFFS_KEY_WH_THRESH].as<double>();
                     if (json.containsKey(JSON_SPIFFS_KEY_POOL_STATS_URL))
                         Settings->PoolStatsApiUrl = json[JSON_SPIFFS_KEY_POOL_STATS_URL].as<const char*>();
-                    // Migrate legacy BC2/custom configurations to the only
-                    // supported chain before any network-data requests run.
-                    Settings->CoinTicker = "BTC";
+                    // Normalize any persisted or legacy coin selection to BTC.
+                    if (Settings->CoinTicker != "BTC") {
+                        Settings->CoinTicker = "BTC";
+                    }
                     if (json.containsKey(JSON_SPIFFS_KEY_COIN_HEIGHT_URL))
                         Settings->CoinHeightApiUrl = json[JSON_SPIFFS_KEY_COIN_HEIGHT_URL].as<const char*>();
                     if (json.containsKey(JSON_SPIFFS_KEY_COIN_DIFF_URL))

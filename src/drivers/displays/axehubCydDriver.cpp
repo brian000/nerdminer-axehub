@@ -13,8 +13,6 @@
 #include "../../wManager.h"
 #include "../../timeconst.h"
 #include "../storage/storage.h"
-#include "../../media/bc2_logo.h"
-
 extern TSettings Settings;
 
 TFT_eSPI tft = TFT_eSPI();
@@ -96,23 +94,11 @@ static void drawCard(int x, int y, int w, int h) {
 }
 
 static void drawCoinIcon() {
-    int ix = 320 - BC2_LOGO_W - 6;
-    int iy = (30 - BC2_LOGO_H) / 2;
-    if (Settings.CoinTicker == "BC2") {
-        for (int row = 0; row < BC2_LOGO_H; row++) {
-            for (int col = 0; col < BC2_LOGO_W; col++) {
-                uint16_t px = bc2Logo40[row * BC2_LOGO_W + col];
-                if (px != BC2_LOGO_TRANSPARENT)
-                    tft.drawPixel(ix + col, iy + row, px);
-            }
-        }
-    } else {
-        tft.fillRect(ix - 6, iy - 1, BC2_LOGO_W + 6, BC2_LOGO_H + 2, COL_HEADER);
-        tft.setTextColor(COL_HASHRATE, COL_HEADER);
-        tft.setTextDatum(MR_DATUM);
-        tft.setTextFont(2);
-        tft.drawString("BTC", 316, 14);
-    }
+    tft.fillRect(292, 1, 28, 28, COL_HEADER);
+    tft.setTextColor(COL_HASHRATE, COL_HEADER);
+    tft.setTextDatum(MR_DATUM);
+    tft.setTextFont(2);
+    tft.drawString("BTC", 316, 14);
 }
 
 static void drawHeader(const char* subtitle) {
@@ -129,7 +115,7 @@ static void drawHeader(const char* subtitle) {
 }
 
 static void drawMinerStatic() {
-    String coin = Settings.CoinTicker.length() ? Settings.CoinTicker : String("BC2");
+    String coin = Settings.CoinTicker.length() ? Settings.CoinTicker : String("BTC");
     String subtitle = String("solo ") + coin + " miner";
     drawHeader(subtitle.c_str());
 
@@ -223,7 +209,7 @@ static void axehubCyd_MinerScreen(unsigned long mElapsed) {
 }
 
 static void drawNetworkStatic() {
-    String coin = Settings.CoinTicker.length() ? Settings.CoinTicker : String("BC2");
+    String coin = Settings.CoinTicker.length() ? Settings.CoinTicker : String("BTC");
     String subtitle = coin + " network";
     drawHeader(subtitle.c_str());
 
@@ -403,7 +389,7 @@ static void axehubCyd_TimeChartScreen(unsigned long mElapsed) {
 
     String currentPrice = getBTCprice();
     String label = String(axehub_price_history_label());
-    String hdr   = label + ((Settings.CoinTicker != "BTC" && Settings.CoinTicker != "BC2")
+    String hdr   = label + ((Settings.CoinTicker != "BTC")
                             ? String(" (fallback)")
                             : String(""));
     if (tC.coinHeader != hdr) {

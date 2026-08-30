@@ -133,6 +133,9 @@ bool SDCard::loadConfigFile(TSettings* Settings)
                     } else {
                         Settings->Brightness = 250;
                     }
+                    if (Settings->CoinTicker != "BTC") {
+                        Settings->CoinTicker = "BTC";
+                    }
                     // Serial.printf("Carteira Lida SD:%s\n", Settings.BtcWallet);       
                     Serial.printf("Carteira Lida SDs:%s\n", Settings->BtcWallet);                       
                     return true;

@@ -99,7 +99,7 @@ static void drawHeader(const char* subtitle) {
 }
 
 static void drawMinerStatic() {
-    String coin = Settings.CoinTicker.length() ? Settings.CoinTicker : String("BC2");
+    String coin = Settings.CoinTicker.length() ? Settings.CoinTicker : String("BTC");
     String subtitle = String("solo ") + coin + " miner";
     drawHeader(subtitle.c_str());
 
@@ -158,7 +158,7 @@ static void axehubM5_MinerScreen(unsigned long mElapsed) {
 static const unsigned long BLOCKS_PER_RETARGET_M5 = 2016;
 
 static void drawNetworkStatic() {
-    String coin = Settings.CoinTicker.length() ? Settings.CoinTicker : String("BC2");
+    String coin = Settings.CoinTicker.length() ? Settings.CoinTicker : String("BTC");
     String subtitle = coin + " network";
     drawHeader(subtitle.c_str());
 }
@@ -283,7 +283,7 @@ static void axehubM5_TimeChartScreen(unsigned long mElapsed) {
 
     String currentPrice = getBTCprice();
     String label = String(axehub_price_history_label());
-    String hdr   = label + ((Settings.CoinTicker != "BTC" && Settings.CoinTicker != "BC2")
+    String hdr   = label + ((Settings.CoinTicker != "BTC")
                             ? String(" (fallback)") : String(""));
     redrawIfChanged(tC.coinHeader, hdr, 4, 70, 60, 14, COL_NET, 2, TL_DATUM);
 

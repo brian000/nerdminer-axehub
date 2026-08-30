@@ -2244,6 +2244,7 @@ void minerWorkerHw(void * task_id)
               static uint32_t s_sw_boundary_total = 0;
               static uint32_t s_sw_last_log_ms = 0;
               s_sw_boundary_total++;
+#if !defined(AXEHUB_DISABLE_FRONT_C_TRACE)
               if ((s_sw_boundary_total & 0x1FFFu) == 0) {
                   const uint32_t now_ms = millis();
                   if (s_sw_last_log_ms != 0) {
@@ -2254,6 +2255,7 @@ void minerWorkerHw(void * task_id)
                   }
                   s_sw_last_log_ms = now_ms;
               }
+#endif
           }
           if (!hw_hit_pl) {
               // No HW hit: SW boundary → keep mining; otherwise flag drop.
