@@ -933,6 +933,30 @@ static void handleShaMicrobenchDma(AsyncWebServerRequest* request) {
 }
 #endif
 
+static int axehubReadBacklightLevel() {
+#ifdef V1_DISPLAY
+    return digitalRead(TFT_BL) ? 255 : 0;
+#else
+    return ledcRead(0);
+#endif
+}
+
+static void axehubApplyBacklightLevel(int level) {
+#ifdef V1_DISPLAY
+    // LilyGo T-Display V1 uses a GPIO backlight pin rather than PWM. The board
+    // supports only a simple on/off backlight, so any non-zero value is treated
+    // as "on" and zero is "off".
+    const bool on = (level > 0);
+#if defined(TFT_BACKLIGHT_ON)
+    digitalWrite(TFT_BL, on ? TFT_BACKLIGHT_ON : !TFT_BACKLIGHT_ON);
+#else
+    digitalWrite(TFT_BL, on ? HIGH : LOW);
+#endif
+#else
+    ledcWrite(0, constrain(level, 0, 255));
+#endif
+}
+
 static void handleDisplayGet(AsyncWebServerRequest* request) {
     if (!checkCompatHeader(request)) { send404(request); return; }
     StaticJsonDocument<256> doc;
@@ -945,7 +969,7 @@ static void handleDisplayGet(AsyncWebServerRequest* request) {
         doc["mode"] = -1;
         doc["num_modes"] = 0;
     }
-    doc["brightness"] = ledcRead(0);            // current LEDC duty (0-255)
+    doc["brightness"] = axehubReadBacklightLevel();
     doc["brightness_persisted"] = Settings.Brightness;
     if (s_sleep_start_min >= 0) {
         doc["sleep_start"]      = minutesToHhmm(s_sleep_start_min);
@@ -991,10 +1015,10 @@ static void axehubSleepWindowTask(void*) {
             bool in_win = sleepWindowActive(s_sleep_start_min, s_sleep_end_min, now_min);
             if (in_win != s_sleep_in_window_last) {
                 if (in_win) {
-                    ledcWrite(0, 0);                    // backlight off
+                    axehubApplyBacklightLevel(0);
                     Serial.printf("[AxeHub] sleep window entered at %02lu:%02lu\n", h, m);
                 } else {
-                    ledcWrite(0, Settings.Brightness);  // restore
+                    axehubApplyBacklightLevel(Settings.Brightness);
                     Serial.printf("[AxeHub] sleep window exited at %02lu:%02lu\n", h, m);
                 }
                 s_sleep_in_window_last = in_win;
@@ -1101,7 +1125,7 @@ static void handleDisplaySleepWindow(AsyncWebServerRequest* request, JsonVariant
 
     // {} disables the window
     if (!o.containsKey("start") && !o.containsKey("end")) {
-        if (s_sleep_in_window_last) ledcWrite(0, Settings.Brightness);
+        if (s_sleep_in_window_last) axehubApplyBacklightLevel(Settings.Brightness);
         s_sleep_start_min = -1;
         s_sleep_end_min   = -1;
         s_sleep_in_window_last = false;
@@ -1246,9 +1270,14 @@ static void handleDisplayBrightness(AsyncWebServerRequest* request, JsonVariant&
         sendJsonStatus(request, 400, "error", "value out of range (0-255)");
         return;
     }
-    // LEDC channel 0 is the TFT backlight (esp32_2432S028R driver uses
-    // ledcAttachPin(TFT_BL, 0) at init). Apply immediately.
+
+#ifdef V1_DISPLAY
+    // LilyGo T-Display V1 uses a GPIO backlight which toggles fully on/off rather
+    // than dimming by duty cycle. Any non-zero value is treated as ON.
+    axehubApplyBacklightLevel(v);
+#else
     ledcWrite(0, v);
+#endif
 
     bool persist = false;
     if (o.containsKey("persist")) persist = o["persist"].as<bool>();

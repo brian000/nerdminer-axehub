@@ -186,17 +186,21 @@ Returns `{"status":"ok","mode":<new_mode>}`.
 
 ### `POST /display/brightness`
 
-Set TFT backlight brightness (LEDC PWM on channel 0).
+Set TFT backlight state.
+
+On the LilyGo T-Display V1, the backlight is a simple GPIO toggle: `0` turns it
+off and any non-zero value turns it on. There is no true PWM dimming on this
+board. For other boards that support PWM, `0–255` still applies normally.
 
 Body:
 ```json
-{"value": 128, "persist": true}
+{"value": 255, "persist": true}
 ```
 
-`value`: 0–255 (immediate effect). `persist` (optional, default false) — saves
-to NVS so it survives reboot.
+`value`: 0–255 (immediate effect; on V1, `0` = off, `>0` = on). `persist`
+(optional, default false) — saves to NVS so it survives reboot.
 
-Returns `{"status":"ok","value":128,"persisted":true}`.
+Returns `{"status":"ok","value":255,"persisted":true}`.
 
 ### `POST /display/invert`
 
