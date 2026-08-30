@@ -10,6 +10,9 @@
 #include "monitor.h"
 #include "OpenFontRender.h"
 #include "rotation.h"
+#if defined(NERDMINER_T_DISPLAY_V1)
+#include "../../drivers/storage/storage.h"
+#endif
 
 #define WIDTH 240
 #define HEIGHT 135
@@ -17,6 +20,10 @@
 OpenFontRender render;
 TFT_eSPI tft = TFT_eSPI();                  // Invoke library, pins defined in User_Setup.h
 TFT_eSprite background = TFT_eSprite(&tft); // Invoke library sprite
+
+#if defined(NERDMINER_T_DISPLAY_V1)
+extern TSettings Settings;
+#endif
 
 void tDisplay_Init(void)
 {
@@ -27,6 +34,18 @@ void tDisplay_Init(void)
   background.setSwapBytes(true);
   render.setDrawer(background);  // Link drawing object to background instance (so font will be rendered on background)
   render.setLineSpaceRatio(0.9); // Espaciado entre texto
+
+#if defined(NERDMINER_T_DISPLAY_V1) && defined(TFT_BL)
+  // T-Display V1's TFT_BL pin is PWM-capable, so drive it via LEDC for dimming.
+  pinMode(TFT_BL, OUTPUT);
+  if (Settings.Brightness == 0) {
+      digitalWrite(TFT_BL, LOW);
+  } else {
+      ledcSetup(0, 5000, 8);
+      ledcAttachPin(TFT_BL, 0);
+      ledcWrite(0, Settings.Brightness);
+  }
+#endif
 
   // Load the font and check it can be read OK
   // if (render.loadFont(NotoSans_Bold, sizeof(NotoSans_Bold))) {

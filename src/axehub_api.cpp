@@ -934,7 +934,7 @@ static void handleShaMicrobenchDma(AsyncWebServerRequest* request) {
 #endif
 
 static int axehubReadBacklightLevel() {
-#ifdef V1_DISPLAY
+#if defined(V1_DISPLAY) && !defined(NERDMINER_T_DISPLAY_V1)
     return digitalRead(TFT_BL) ? 255 : 0;
 #else
     return ledcRead(0);
@@ -942,10 +942,10 @@ static int axehubReadBacklightLevel() {
 }
 
 static void axehubApplyBacklightLevel(int level) {
-#ifdef V1_DISPLAY
-    // LilyGo T-Display V1 uses a GPIO backlight pin rather than PWM. The board
-    // supports only a simple on/off backlight, so any non-zero value is treated
-    // as "on" and zero is "off".
+#if defined(V1_DISPLAY) && !defined(NERDMINER_T_DISPLAY_V1)
+    // These V1_DISPLAY boards (M5Stick-C-Plus2, Waveshare S3 GEEK) use a GPIO
+    // backlight pin rather than PWM. The board supports only a simple on/off
+    // backlight, so any non-zero value is treated as "on" and zero is "off".
     const bool on = (level > 0);
 #if defined(TFT_BACKLIGHT_ON)
     digitalWrite(TFT_BL, on ? TFT_BACKLIGHT_ON : !TFT_BACKLIGHT_ON);
