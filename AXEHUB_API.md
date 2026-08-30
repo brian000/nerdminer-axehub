@@ -188,9 +188,11 @@ Returns `{"status":"ok","mode":<new_mode>}`.
 
 Set TFT backlight state.
 
-On the LilyGo T-Display V1, the backlight is a simple GPIO toggle: `0` turns it
-off and any non-zero value turns it on. There is no true PWM dimming on this
-board. For other boards that support PWM, `0–255` still applies normally.
+Board-specific behavior:
+- LilyGo T-Display V1: GPIO backlight toggle (`0` = off, any non-zero = on).
+- LilyGo T-Display S3: GPIO38 backlight driven by LEDC PWM at a default
+  2000 Hz, with `0–255` brightness scaling applied normally.
+- Other boards that support PWM follow their own TFT driver defaults.
 
 Body:
 ```json
