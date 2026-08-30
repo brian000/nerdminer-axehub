@@ -32,7 +32,10 @@ axehub_sha_asm_s3_mine_batch:
     l32i.n  a11, a4, 0
     beq     a11, a5, .Lexhausted
 
-    /* Initial setup: midstate -> H[0..7], block 2 + nonce + padding -> TEXT */
+    /* Initial setup: midstate -> H[0..7], then pin job-constant block-2
+     * words in TEXT[0..2]. TEXT[3]=nonce, TEXT[4]=0x80 and TEXT[15]=0x280
+     * are rewritten each round, but the static header words and zero padding
+     * stay resident across the batch to cut the S3 write pressure. */
     l32i.n  a12, a2, 0
     s32i.n  a12, a10, 0
     l32i.n  a12, a2, 4
@@ -107,23 +110,14 @@ axehub_sha_asm_s3_mine_batch:
 
     s32i.n  a7, a8, 16                   /* SHA_START (inter hash) */
 
-    /* Overlap 2: pre-write next nonce's block-2 input while inter computes */
+    /* Overlap 2: the static block-2 header words stay resident across the
+     * batch. Only the next nonce and the final 0x80/length markers need to be
+     * refreshed while the inter hash computes. */
     addi.n  a11, a11, 1                  /* nonce++ for next iter */
 
-    l32i.n  a12, a3, 0
-    l32i.n  a13, a3, 4
-    s32i.n  a12, a9, 0
-    s32i.n  a13, a9, 4
-    l32i.n  a12, a3, 8
-    s32i.n  a12, a9, 8
     s32i.n  a11, a9, 12
     movi.n  a12, 0x80
     s32i.n  a12, a9, 16
-    movi.n  a12, 0
-    s32i.n  a12, a9, 20
-    s32i.n  a12, a9, 24
-    s32i.n  a12, a9, 28
-    s32i.n  a12, a9, 32
     s32i.n  a14, a9, 60
 
 .Lwait2:

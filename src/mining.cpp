@@ -958,7 +958,7 @@ void minerWorkerHw(void * task_id)
           if ((uint8_t)(fast_nonce & 0xFF) == 0 && s_working_current_job_id != job_in_work) {
               break;
           }
-          uint32_t batch_end = fast_nonce + 4096;   // larger batch amortises per-call overhead
+          uint32_t batch_end = fast_nonce + 65536; // maximize amortization on the S3 hot loop
           if (batch_end > fast_end) batch_end = fast_end;
           uint8_t fast_hash[32] __attribute__((aligned(4)));
 #ifdef AXEHUB_HW_ASM_PURE

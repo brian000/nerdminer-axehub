@@ -85,6 +85,14 @@ bool IRAM_ATTR axehub_sha_fast_mine_batch(
     uint32_t nonce = *nonce_io;
     bool     candidate = false;
 
+    // Block-2 words 0..2 are constant for the full job and stay valid across the
+    // loop; only the nonce slot and per-hash final length words change.
+    sha_text[0]  = blk0;
+    sha_text[1]  = blk1;
+    sha_text[2]  = blk2;
+    sha_text[4]  = 0x00000080U;
+    sha_text[15] = 0x80020000U;
+
     while (nonce != nonce_end) {
 
         // Cooperative early-exit. Checked once per nonce — costs ~4 cycles.
@@ -103,21 +111,15 @@ bool IRAM_ATTR axehub_sha_fast_mine_batch(
         sha_h[7] = mid7;
 
         // ---- PHASE B: Fill block 2 (TEXT[0..15] full) ----
+        // Block-2 words 0..2 are constant across the entire job; keep them
+        // resident in TEXT and only rewrite the nonce / length slots each round.
         sha_text[0]  = blk0;
         sha_text[1]  = blk1;
         sha_text[2]  = blk2;
         sha_text[3]  = nonce;
         sha_text[4]  = 0x00000080U;
-        sha_text[5]  = 0;
-        sha_text[6]  = 0;
-        sha_text[7]  = 0;
-        sha_text[8]  = 0;
-        sha_text[9]  = 0;
-        sha_text[10] = 0;
-        sha_text[11] = 0;
-        sha_text[12] = 0;
-        sha_text[13] = 0;
-        sha_text[14] = 0;
+        // TEXT[5..14] are kept at zero across the job; init_job() explicitly
+        // zeros them once and the peripheral retains that state across the loop.
         sha_text[15] = 0x80020000U;          // 640 bits = 80-byte block, BE
 
         // ---- PHASE C: Trigger first hash ----
@@ -146,12 +148,8 @@ bool IRAM_ATTR axehub_sha_fast_mine_batch(
         sha_text[6]  = h6;
         sha_text[7]  = h7;
         sha_text[8]  = 0x00000080U;          // padding start for 32-byte input
-        sha_text[9]  = 0;
-        sha_text[10] = 0;
-        sha_text[11] = 0;
-        sha_text[12] = 0;
-        sha_text[13] = 0;
-        sha_text[14] = 0;
+        // TEXT[9..14] remain zero from the job init; only the final 256-bit
+        // length marker changes for the second hash.
         sha_text[15] = 0x00010000U;          // 256 bits = 32-byte block, BE
 
         // ---- PHASE F: Trigger inter hash (fresh start, IV reset) ----
@@ -243,12 +241,6 @@ void IRAM_ATTR axehub_sha_fast_compute_one(
     memw();
     for (int i = 0; i < 8; ++i) sha_text[i] = h[i];
     sha_text[8]  = 0x00000080U;
-    sha_text[9]  = 0;
-    sha_text[10] = 0;
-    sha_text[11] = 0;
-    sha_text[12] = 0;
-    sha_text[13] = 0;
-    sha_text[14] = 0;
     sha_text[15] = 0x00010000U;
 
     memw();
@@ -575,10 +567,21 @@ bool IRAM_ATTR axehub_sha_fast_mine_batch_asm(
     uint32_t total_done  = 0;
     bool     found       = false;
 
+    // Keep block-2 constants resident at the SHA TEXT memory for the full job.
+    // These words are shared by every nonce in the batch and should not be
+    // reloaded on the critical path.
+    volatile uint32_t * const sha_text = (volatile uint32_t *)SHA_TEXT_BASE;
+    sha_text[0]  = block2_words[0];
+    sha_text[1]  = block2_words[1];
+    sha_text[2]  = block2_words[2];
+    sha_text[4]  = 0x00000080U;
+    sha_text[15] = 0x80020000U;
+    for (int i = 5; i < 15; ++i) sha_text[i] = 0;
+
     while (local_nonce != nonce_end) {
         if (!*mining_active) break;
 
-        uint32_t sub_end = local_nonce + 256;
+        uint32_t sub_end = local_nonce + 4096; // larger asm chunks trim loop overhead on S3
         if ((int32_t)(sub_end - nonce_end) > 0 || sub_end < local_nonce) {
             sub_end = nonce_end;
         }
@@ -617,12 +620,6 @@ bool IRAM_ATTR axehub_sha_fast_mine_batch_asm(
             "l32i.n     a11, %[mid], 28\n"
             "s32i.n     a11, a10, 28\n"
 
-            "l32i.n     a11, %[blk2], 0\n"
-            "s32i.n     a11, a9, 0\n"
-            "l32i.n     a11, %[blk2], 4\n"
-            "s32i.n     a11, a9, 4\n"
-            "l32i.n     a11, %[blk2], 8\n"
-            "s32i.n     a11, a9, 8\n"
             "s32i.n     %[nonce], a9, 12\n"
             "movi.n     a11, 0x80\n"
             "s32i.n     a11, a9, 16\n"
@@ -1157,8 +1154,8 @@ void axehub_sha_hw_phase_microbench(void)
     volatile uint32_t * const sha_h    = (uint32_t *)0x6003B040;
 
     sha_base[0] = 2;
-    for (int i = 0; i < 8; ++i) sha_h[i] = 0x6A09E667 + i*0x11111111;
-    for (int i = 0; i < 16; ++i) sha_text[i] = 0xDEADBEEF + i;
+    for (uint32_t i = 0; i < 8; ++i) sha_h[i] = 0x6A09E667 + i*0x11111111;
+    for (uint32_t i = 0; i < 16; ++i) sha_text[i] = 0xDEADBEEF + i;
     sha_base[16/4] = 1;
     while (sha_base[24/4]) ;
 
