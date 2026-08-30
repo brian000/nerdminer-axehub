@@ -19,7 +19,7 @@
 #define DEFAULT_TIMEZONE	0
 #define DEFAULT_SAVESTATS	false
 #define DEFAULT_INVERTCOLORS	false
-#define DEFAULT_BRIGHTNESS	250
+#define DEFAULT_BRIGHTNESS	200
 
 // JSON config files
 #define JSON_CONFIG_FILE	"/config.json"
