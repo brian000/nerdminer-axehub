@@ -20,6 +20,8 @@
 OpenFontRender render;
 TFT_eSPI tft = TFT_eSPI();                  // Invoke library, pins defined in User_Setup.h
 TFT_eSprite background = TFT_eSprite(&tft); // Invoke library sprite
+static bool s_sprite_ready = false;
+static bool s_render_ready = false;
 
 #if defined(NERDMINER_T_DISPLAY_V1)
 extern TSettings Settings;
@@ -27,10 +29,17 @@ extern TSettings Settings;
 
 void tDisplay_Init(void)
 {
+  s_sprite_ready = false;
+  s_render_ready = false;
+
   tft.init();
   tft.setRotation(ROTATION_90);
   tft.setSwapBytes(true);                 // Swap the colour byte order when rendering
-  background.createSprite(WIDTH, HEIGHT); // Background Sprite
+  s_sprite_ready = background.createSprite(WIDTH, HEIGHT); // Background Sprite
+  if (!s_sprite_ready) {
+    Serial.println("[TDisplayV1] sprite init failed");
+    return;
+  }
   background.setSwapBytes(true);
   render.setDrawer(background);  // Link drawing object to background instance (so font will be rendered on background)
   render.setLineSpaceRatio(0.9); // Espaciado entre texto
@@ -49,10 +58,10 @@ void tDisplay_Init(void)
 
   // Load the font and check it can be read OK
   // if (render.loadFont(NotoSans_Bold, sizeof(NotoSans_Bold))) {
-  if (render.loadFont(DigitalNumbers, sizeof(DigitalNumbers)))
+  s_render_ready = (render.loadFont(DigitalNumbers, sizeof(DigitalNumbers)) == 0);
+  if (!s_render_ready)
   {
-    Serial.println("Initialise error");
-    return;
+    Serial.println("[TDisplayV1] render init failed");
   }
 }
 
@@ -74,6 +83,14 @@ void tDisplay_MinerScreen(unsigned long mElapsed)
 
   // Print background screen
   background.pushImage(0, 0, MinerWidth, MinerHeight, MinerScreen);
+
+  if (!s_sprite_ready) {
+    background.setTextColor(TFT_WHITE, TFT_BLACK);
+    background.setTextDatum(MC_DATUM);
+    background.drawString("render unavailable", WIDTH / 2, HEIGHT / 2, 2);
+    background.pushSprite(0, 0);
+    return;
+  }
 
   Serial.printf(">>> Completed %s share(s), %s Khashes, avg. hashrate %s KH/s\n",
                 data.completedShares.c_str(), data.totalKHashes.c_str(), data.currentHashRate.c_str());
@@ -123,14 +140,23 @@ void tDisplay_ClockScreen(unsigned long mElapsed)
   // Print background screen
   background.pushImage(0, 0, minerClockWidth, minerClockHeight, minerClockScreen);
 
+  if (!s_sprite_ready) {
+    background.setTextColor(TFT_WHITE, TFT_BLACK);
+    background.setTextDatum(MC_DATUM);
+    background.drawString("render unavailable", WIDTH / 2, HEIGHT / 2, 2);
+    background.pushSprite(0, 0);
+    return;
+  }
+
   Serial.printf(">>> Completed %s share(s), %s Khashes, avg. hashrate %s KH/s\n",
                 data.completedShares.c_str(), data.totalKHashes.c_str(), data.currentHashRate.c_str());
 
   // Hashrate
-  render.setFontSize(20);
-  render.setCursor(19, 122);
-  render.setFontColor(TFT_BLACK);
-  render.rdrawString(data.currentHashRate.c_str(), 70, 103, TFT_BLACK);
+  background.setTextColor(TFT_BLACK, TFT_BLACK);
+  background.setTextDatum(TL_DATUM);
+  background.setTextFont(4);
+  background.setTextSize(1);
+  background.drawString(data.currentHashRate.c_str(), 70, 103, 4);
 
   // Print BTC Price
   background.setFreeFont(FSSB9);
@@ -160,6 +186,14 @@ void tDisplay_GlobalHashScreen(unsigned long mElapsed)
 
   // Print background screen
   background.pushImage(0, 0, globalHashWidth, globalHashHeight, globalHashScreen);
+
+  if (!s_sprite_ready) {
+    background.setTextColor(TFT_WHITE, TFT_BLACK);
+    background.setTextDatum(MC_DATUM);
+    background.drawString("render unavailable", WIDTH / 2, HEIGHT / 2, 2);
+    background.pushSprite(0, 0);
+    return;
+  }
 
   Serial.printf(">>> Completed %s share(s), %s Khashes, avg. hashrate %s KH/s\n",
                 data.completedShares.c_str(), data.totalKHashes.c_str(), data.currentHashRate.c_str());
