@@ -58,9 +58,9 @@ bool IRAM_ATTR axehub_sha_fast_mine_batch(
     volatile uint32_t *hash_counter,
     volatile bool  *mining_active)
 {
-    // Pre-load midstate into locals so the compiler keeps them in registers
-    // across the loop. Xtensa LX7 has 16 ARs, this leaves enough for the
-    // peripheral pointers + nonce + scratch.
+    // Keep the per-job constants in local registers so the hot loop carries the
+    // minimum live state while the SHA engine is fed from the memory-mapped
+    // registers. This avoids extra spills and keeps the critical path tight.
     const uint32_t mid0 = midstate[0];
     const uint32_t mid1 = midstate[1];
     const uint32_t mid2 = midstate[2];
@@ -86,12 +86,15 @@ bool IRAM_ATTR axehub_sha_fast_mine_batch(
     bool     candidate = false;
 
     // Block-2 words 0..2 are constant for the full job and stay valid across the
-    // loop; only the nonce slot and per-hash final length words change.
+    // loop. Keep the phase pad markers resident as well; only the nonce slot and
+    // the active inter-hash length marker change between rounds.
     sha_text[0]  = blk0;
     sha_text[1]  = blk1;
     sha_text[2]  = blk2;
     sha_text[4]  = 0x00000080U;
+    sha_text[8]  = 0x00000080U;
     sha_text[15] = 0x80020000U;
+    for (int i = 5; i <= 14; ++i) sha_text[i] = 0;
 
     while (nonce != nonce_end) {
 
@@ -111,16 +114,11 @@ bool IRAM_ATTR axehub_sha_fast_mine_batch(
         sha_h[7] = mid7;
 
         // ---- PHASE B: Fill block 2 (TEXT[0..15] full) ----
-        // Block-2 words 0..2 are constant across the entire job; keep them
-        // resident in TEXT and only rewrite the nonce / length slots each round.
-        sha_text[0]  = blk0;
-        sha_text[1]  = blk1;
-        sha_text[2]  = blk2;
+        // Block-2 words 0..2 + pad words 4 and 15 are phase-static for this job.
+        // Keep them resident and only refresh the live nonce slot each round.
         sha_text[3]  = nonce;
-        sha_text[4]  = 0x00000080U;
         // TEXT[5..14] are kept at zero across the job; init_job() explicitly
         // zeros them once and the peripheral retains that state across the loop.
-        sha_text[15] = 0x80020000U;          // 640 bits = 80-byte block, BE
 
         // ---- PHASE C: Trigger first hash ----
         memw();
@@ -148,8 +146,8 @@ bool IRAM_ATTR axehub_sha_fast_mine_batch(
         sha_text[6]  = h6;
         sha_text[7]  = h7;
         sha_text[8]  = 0x00000080U;          // padding start for 32-byte input
-        // TEXT[9..14] remain zero from the job init; only the final 256-bit
-        // length marker changes for the second hash.
+        // TEXT[9..14] remain zero from the job init; the final 256-bit length
+        // marker is fixed for the inter hash and is kept resident across the batch.
         sha_text[15] = 0x00010000U;          // 256 bits = 32-byte block, BE
 
         // ---- PHASE F: Trigger inter hash (fresh start, IV reset) ----
@@ -252,9 +250,7 @@ void IRAM_ATTR axehub_sha_fast_compute_one(
     while (*sha_busy != 0) {}
     memw();
 
-    for (int i = 0; i < 8; ++i) {
-        ((uint32_t *)out_hash)[i] = sha_h[i];
-    }
+    memcpy(out_hash, (const void *)sha_h, 32);
 }
 
 // ---- Boot-time selftest ----------------------------------------------------
@@ -800,7 +796,7 @@ static void IRAM_ATTR baseline_compute_one(const uint32_t *midstate,
     *sha_start = 1;
     while (*sha_busy != 0) {}
 
-    for (int i = 0; i < 8; ++i) ((uint32_t *)out_hash)[i] = sha_h[i];
+    memcpy(out_hash, (const void *)sha_h, 32);
 }
 
 bool axehub_sha_fast_selftest(void)
