@@ -1,21 +1,24 @@
-
-
-
----
-
-# NerdMiner — AxeHub Edition
-
-Community fork of [BitMaker-hub/NerdMiner_v2](https://github.com/BitMaker-hub/NerdMiner_v2)
-adding optional features on top of the original miner. All upstream
-functionality is preserved — additions are gated behind compile flags
-so you opt in only to what you want.
-
 ## Recent repository changes
 
 - Added `nm_helper.sh` query commands for inspecting miner status and backlight settings; it replaces the retired `update_backlight_sleep.sh` helper.
 - Restored T-Display V1 OpenFontRender rendering and added PWM backlight dimming controlled through the AxeHub API.
 - Standardized Bitcoin (`BTC`) defaults across firmware, displays, and persisted configuration, with regression coverage in `tests/test_coin_defaults.py`.
-- Tuned the ESP32-S3 SHA hot loop and stabilized S3 display backlight mapping and API brightness behavior.
+- Tuned the ESP32-S3 SHA hot loop and stabilized S3 display backlight mapping and API brightness behavior.  
+
+Optimization results for boards I have on-hand (YMMV):
+
+| Board               | Before   | After    | Increase |
+| ------------------- | -------- | -------- | -------- |
+| Lilygo T-Display    | ~330KH/s | ~680KH/s | 106.1%   |
+| Lilygo T-Display S3 | ~250KH/s | ~383KH/s | 53.2%    |
+
+---
+
+# NerdMiner — AxeHub Edition
+Community fork of [BitMaker-hub/NerdMiner_v2](https://github.com/BitMaker-hub/NerdMiner_v2)
+adding optional features on top of the original miner. All upstream
+functionality is preserved — additions are gated behind compile flags
+so you opt in only to what you want.
 
 The bulk of the new logic lives in dedicated `axehub_*` files; upstream
 files (`mining.cpp`, `monitor.cpp`, `wManager.cpp`, `NerdMinerV2.ino.cpp`,
